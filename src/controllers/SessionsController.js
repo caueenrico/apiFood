@@ -22,6 +22,8 @@ class SessionsController {
     if(!passwordMatch){
       throw new AppError('e-mail ou senha incorreta', 401)
     }
+    
+
 
     //jwt
     const { secret, expiresIn} = authConfig.jwt;
@@ -29,7 +31,7 @@ class SessionsController {
       subject: String(userExists.id),
       expiresIn
     })
-
+    console.log('aqui')
     console.log(`usuario logado ${email}`)
     return response.status(200).json({userExists, token})
     

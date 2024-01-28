@@ -5,9 +5,9 @@ exports.up = (knex) =>
 
     table.string("picture").nullable();
     table.text("title");
-
+cd
     table
-      .enum("category", ["salada", "refeicao", "bebida", "sobremesa"], {
+      .enum("category", ["salada", "refeicao","lanche","suco", "bebida","bebida alcoolica","sobremesa"], {
         useNative: true,
         enumName: "category",
       })

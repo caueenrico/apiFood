@@ -1,3 +1,4 @@
+const { diskStorage } = require("multer");
 const knex = require("../database/knex");
 const DiskStorage = require("../providers/DiskStorage");
 
@@ -6,15 +7,13 @@ const DiskStorage = require("../providers/DiskStorage");
 class MenuController {
   async create(request, response) {
     const { title, category, ingredients, price, description } = request.body;
-    const user_id  = request.user.id;
-    const picture = request.file.filename
-    
-    const ingredientsArray = JSON.parse(ingredients || '[]');
+    const user_id = request.user.id;
+    const picture = request.file.filename;
 
-    console.log(ingredientsArray)
+    const ingredientsArray = JSON.parse(ingredients || "[]");
 
-    const diskStorage = new DiskStorage()
-    const filename = await diskStorage.saveFile(picture)
+    const diskStorage = new DiskStorage();
+    const filename = await diskStorage.saveFile(picture);
 
     const [menu_id] = await knex("menu").insert({
       user_id,
@@ -22,7 +21,7 @@ class MenuController {
       category,
       price,
       description,
-      picture: filename
+      picture: filename,
     });
 
     const ingredientsInsert = ingredientsArray.map((name) => {
@@ -39,18 +38,19 @@ class MenuController {
   }
 
   async show(request, response) {
-    const { id } = request.params
+    const { id } = request.params;
 
-    const menu = await knex("menu").where({id}).first()
-    const ingredients = await knex("ingredients").where({menu_id: id}).orderBy("name")
+    const menu = await knex("menu").where({ id }).first();
+    const ingredients = await knex("ingredients")
+      .where({ menu_id: id })
+      .orderBy("name");
 
-    console.log(id)
+    console.log(id);
 
     return response.json({
       ...menu,
-      ingredients
-    })
-    
+      ingredients,
+    });
   }
 
   async index(request, response) {
@@ -69,17 +69,17 @@ class MenuController {
         .whereIn("name", filterIngredients)
         .innerJoin("menu", "menu.id", "ingredients.menu_id");
 
-      console.log(menus);
+      
     } else {
       menus = await knex("menu").whereLike("title", `%${title}%`);
     }
 
     const ingredients = await knex("ingredients");
+
     const menuWithIngre = menus.map((menu) => {
       const menuIngre = ingredients.filter(
         (ingred) => ingred.menu_id === menu.id
       );
-
       return {
         ...menu,
         ingredients: menuIngre,
@@ -90,23 +90,57 @@ class MenuController {
   }
 
   async delete(request, response) {
-    const user_id = request.user.id;
+    const {id} = request.params
 
-    console.log(user_id);
-
-    await knex("menu").where("id", user_id).delete();
+    const menuSelected = await knex("menu").where({id}).first()
+    
+    const diskStorage = new DiskStorage();
+   
+    if (menuSelected.picture) {
+      await diskStorage.deleteFile(menuSelected.picture);
+      await knex("menu").where({id}).first().delete();
+    }
 
     return response.json("menu deletado");
   }
 
   async update(request, response) {
-    const { title, price, description } = request.body;
-    const { menu_id } = request.params;
+    const { title, price, category, description, ingredients } = request.body;
+    const { id } = request.params;
+    const user_id = request.user.id;
+   
+    const menu = await knex("menu").where({id}).first()
+    
+    if(!menu){
+      throw new AppError("Prato não encontrado.", 404);
+    }
 
-    await knex("menu")
-      .where({ id: menu_id })
-      .update({ title, price, description});
+    const menuUpdate = {
+      title: title ?? menu.title,
+      price: price ?? menu.price,
+      category: category ?? menu.category,
+      description: description ?? menu.description,
+      
+      updated_at: knex.fn.now(),
+    }
 
+    if(ingredients){
+      await knex("ingredients").where({menu_id: id}).delete()
+      
+      const ingredientsInsert = ingredients.map((name) => {
+        return {
+          menu_id: id,
+          user_id,
+          name,          
+        };      
+      });
+      
+      await knex("ingredients").insert(ingredientsInsert);
+  
+    }
+  
+    await knex("menu").where({id}).update(menuUpdate);
+    
     return response.json("atualizado prato");
   }
 }

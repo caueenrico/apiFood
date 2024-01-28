@@ -26,6 +26,25 @@ class MenuPictureController {
 
     return response.json(menuSelected);
   }
+
+  async deletePicture(request, response){
+    const {menu_id} = request.params;
+
+    const menuSelected = await knex("menu").where({ id: menu_id }).first();
+
+    if (!menuSelected) {
+      throw new AppError("Este prato não existe", 401);
+    }
+
+    const diskStorage = new DiskStorage();
+   
+    if (menuSelected.picture) {
+      await diskStorage.deleteFile(menuSelected.picture);
+    }
+
+    return response.json('imagem excluida')
+
+  }
 }
 
 module.exports = MenuPictureController;

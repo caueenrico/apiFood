@@ -9,4 +9,4 @@ routes.use('/user', userRoutes)
 routes.use("/menu", menuRoutes)
 routes.use("/sessions", sessionRoutes)
 
-module.exports = routes 
+module.exports = routes
